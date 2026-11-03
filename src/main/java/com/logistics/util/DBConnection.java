@@ -16,23 +16,18 @@ public class DBConnection {
     private static final String PASSWORD =
         System.getenv("DB_PASSWORD");
 
-    public static Connection getConnection() {
-
-        Connection connection = null;
-
+    public static Connection getConnection() throws SQLException {
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
 
-            connection = DriverManager.getConnection(
+            Connection connection = DriverManager.getConnection(
                 URL, USER, PASSWORD
             );
 
             System.out.println("Database connected successfully!");
-
-        } catch (ClassNotFoundException | SQLException e) {
-            e.printStackTrace();
+            return connection;
+        } catch (ClassNotFoundException e) {
+            throw new SQLException("MySQL JDBC driver is not available.", e);
         }
-
-        return connection;
     }
 }

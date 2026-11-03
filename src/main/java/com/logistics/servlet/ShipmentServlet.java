@@ -1,15 +1,14 @@
-
 package com.logistics.servlet;
 
 import com.google.gson.Gson;
 import com.logistics.model.Shipment;
 import com.logistics.util.DBConnection;
 
-import javax.servlet.ServletException;
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -77,18 +76,19 @@ public class ShipmentServlet extends HttpServlet {
 
         try {
 
-           com.google.gson.JsonObject json =
-    gson.fromJson(request.getReader(), com.google.gson.JsonObject.class);
+            com.google.gson.JsonObject json =
+                gson.fromJson(request.getReader(),
+                              com.google.gson.JsonObject.class);
 
-Shipment shipment = new Shipment();
+            Shipment shipment = new Shipment();
 
-shipment.setSource(json.get("source").getAsString());
-shipment.setDestination(json.get("destination").getAsString());
-shipment.setWeight(json.get("weight").getAsDouble());
+            shipment.setSource(json.get("source").getAsString());
+            shipment.setDestination(json.get("destination").getAsString());
+            shipment.setWeight(json.get("weight").getAsDouble());
 
-shipment.setShipmentDate(
-    Date.valueOf(json.get("shipmentDate").getAsString())
-);
+            shipment.setShipmentDate(
+                Date.valueOf(json.get("shipmentDate").getAsString())
+            );
 
             String sql = "INSERT INTO shipments " +
                     "(source, destination, weight, shipment_date, status) " +
@@ -114,6 +114,75 @@ shipment.setShipmentDate(
 
         } catch (Exception e) {
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            e.printStackTrace();
+        }
+    }
+
+    // Permanently delete a shipment
+    @Override
+    protected void doDelete(HttpServletRequest request,
+                            HttpServletResponse response)
+                            throws ServletException, IOException {
+
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+
+        String shipmentId = request.getParameter("shipmentId");
+
+        if (shipmentId == null || shipmentId.trim().isEmpty()) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            response.getWriter().print(
+                "{\"message\":\"Shipment ID is required\"}"
+            );
+            return;
+        }
+
+        try {
+            int id = Integer.parseInt(shipmentId);
+
+            if (id <= 0) {
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                response.getWriter().print(
+                    "{\"message\":\"Invalid shipment ID\"}"
+                );
+                return;
+            }
+
+            String sql = "DELETE FROM shipments WHERE shipment_id = ?";
+
+            try (Connection con = DBConnection.getConnection();
+                 PreparedStatement ps = con.prepareStatement(sql)) {
+
+                ps.setInt(1, id);
+
+                int rowsDeleted = ps.executeUpdate();
+
+                if (rowsDeleted > 0) {
+                    response.setStatus(HttpServletResponse.SC_OK);
+                    response.getWriter().print(
+                        "{\"message\":\"Shipment deleted successfully\"}"
+                    );
+                } else {
+                    response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                    response.getWriter().print(
+                        "{\"message\":\"Shipment not found\"}"
+                    );
+                }
+            }
+
+        } catch (NumberFormatException e) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            response.getWriter().print(
+                "{\"message\":\"Invalid shipment ID\"}"
+            );
+
+        } catch (Exception e) {
+            response.setStatus(
+                HttpServletResponse.SC_INTERNAL_SERVER_ERROR
+            );
+            response.getWriter().print(
+                "{\"message\":\"Unable to delete shipment. It may have related records.\"}"
+            );
             e.printStackTrace();
         }
     }

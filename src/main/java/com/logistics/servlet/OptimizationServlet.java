@@ -3,11 +3,11 @@ package com.logistics.servlet;
 
 import com.logistics.util.DBConnection;
 
-import javax.servlet.ServletException;
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -25,6 +25,7 @@ import java.util.HashMap;
 public class OptimizationServlet extends HttpServlet {
 
     private Gson gson = new Gson();
+    private static final double WEIGHT_COST_PER_KG = 2.0;
 
     @Override
     protected void doGet(HttpServletRequest request,
@@ -49,12 +50,12 @@ public class OptimizationServlet extends HttpServlet {
             "r.distance, r.transport_mode, " +
             "c.fuel_cost_per_km, c.driver_charges, c.other_charges, " +
             "(r.distance * c.fuel_cost_per_km + " +
-            "c.driver_charges + c.other_charges) AS total_cost " +
+            "c.driver_charges + c.other_charges + " +
+            "s.weight * " + WEIGHT_COST_PER_KG + ") AS total_cost, " +
+            "s.weight " +
             "FROM routes r " +
             "JOIN transportation_cost c ON r.route_id = c.route_id " +
-            "JOIN shipments s ON s.source = r.source " +
-            "AND s.destination = r.destination " +
-            "WHERE s.shipment_id = ? " +
+            "JOIN shipments s ON s.shipment_id = ? " +
             "ORDER BY total_cost ASC";
 
         List<Map<String, Object>> results = new ArrayList<>();
@@ -75,6 +76,7 @@ public class OptimizationServlet extends HttpServlet {
                     route.put("destination", rs.getString("destination"));
                     route.put("distance", rs.getDouble("distance"));
                     route.put("transportMode", rs.getString("transport_mode"));
+                    route.put("weight", rs.getDouble("weight"));
                     route.put("totalCost", rs.getDouble("total_cost"));
 
                     results.add(route);
